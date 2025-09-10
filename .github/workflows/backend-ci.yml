@@ -1,41 +1,27 @@
-name: Backend CI/CD
+# .github/workflows/backend.yml
+name: Deploy Node to ECS
 
 on:
   push:
-    branches:
-      - main  # deploy on push to main branch
+    branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Log in to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          region: ${{ secrets.AWS_REGION }}
-
+      - uses: actions/checkout@v3
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v2
+      - name: Login to AWS ECR
+        uses: aws-actions/amazon-ecr-login@v2
       - name: Build Docker image
         run: |
-          docker build -t backend:latest .
-          docker tag backend:latest ${{ secrets.ECR_REPO }}:latest
-
-      - name: Push Docker image to ECR
+          docker build -t react-node-backend backend
+          docker tag react-node-backend:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/react-node-backend:latest
+      - name: Push Docker image
         run: |
-          docker push ${{ secrets.ECR_REPO }}:latest
-
+          docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/react-node-backend:latest
       - name: Update ECS service
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          service: ${{ secrets.BACKEND_SERVICE }}
-          cluster: ${{ secrets.CLUSTER_NAME }}
-          task-definition: ecs-task-def.json
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws ecs update-service --cluster react-node-cluster --service react-node-backend-service --force-new-deployment
 
