@@ -19,25 +19,35 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: |
+          cd frontend
+          npm install
 
-      - name: Build project
-        run: npm run build
+      - name: Build React project
+        run: |
+          cd frontend
+          npm run build
 
-      - name: Configure AWS credentials
+      - name: Deploy to S3
+        uses: aws-actions/s3-sync@v1
+        with:
+          bucket: ${{ secrets.FRONTEND_BUCKET }}
+          region: ${{ secrets.AWS_REGION }}
+          source-dir: frontend/build
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Invalidate CloudFront cache
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1   # change if different
-
-      - name: Sync build files to S3
-        run: |
-          aws s3 sync ./build s3://react-node-frontend-bucket --delete
-
-      - name: Invalidate CloudFront cache
-        run: |
+          aws-region: ${{ secrets.AWS_REGION }}
+      - run: |
           aws cloudfront create-invalidation \
-            --distribution-id E2QVAAPCJ023G \
-            --paths "/*"
+            --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} \
+            --paths "/*" 
+
+
 

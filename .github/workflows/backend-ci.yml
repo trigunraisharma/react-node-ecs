@@ -9,19 +9,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Docker
-        uses: docker/setup-buildx-action@v2
-      - name: Login to AWS ECR
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Build Docker image
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
+
+      - name: Build and push Docker image
         run: |
-          docker build -t react-node-backend backend
-          docker tag react-node-backend:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/react-node-backend:latest
-      - name: Push Docker image
-        run: |
-          docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/react-node-backend:latest
+          cd backend
+          docker build -t ${{ secrets.ECR_REPO }}:latest .
+          docker push ${{ secrets.ECR_REPO }}:latest
+
       - name: Update ECS service
         run: |
-          aws ecs update-service --cluster react-node-cluster --service react-node-backend-service --force-new-deployment
-
+          aws ecs update-service \
+            --cluster ${{ secrets.CLUSTER_NAME }} \
+            --service ${{ secrets.BACKEND_SERVICE }} \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
