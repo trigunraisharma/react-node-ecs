@@ -27,3 +27,20 @@ output "cloudwatch_log_group" {
   description = "Log group name where ECS container logs are stored"
   value       = aws_cloudwatch_log_group.ecs_backend.name
 }
+
+# Store values in SSM
+resource "aws_ssm_parameter" "alb_dns_param" {
+  name        = "/my-react-node-app/backend/alb_dns"
+  description = "ALB DNS name for backend"
+  type        = "String"
+  value       = aws_lb.backend-alb.dns_name
+  overwrite   = true
+}
+
+resource "aws_ssm_parameter" "cloudfront_url_param" {
+  name        = "/my-react-node-app/frontend/cloudfront_url"
+  description = "CloudFront distribution URL for frontend"
+  type        = "String"
+  value       = aws_cloudfront_distribution.s3_distribution.domain_name
+  overwrite   = true
+}

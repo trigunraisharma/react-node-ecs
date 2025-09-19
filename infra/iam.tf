@@ -1,3 +1,8 @@
+####################################################
+# Get current AWS account info (needed for ARNs)
+####################################################
+data "aws_caller_identity" "current" {}
+
 #create iam role for ECS task execution
 resource "aws_iam_role" "ecs-execution-role" {
   name = "ecs-execution-role"
@@ -39,8 +44,8 @@ resource "aws_iam_policy" "ecs_user_ecr_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "ecr:DescribeRepositories",
           "ecr:DescribeImages",
           "ecr:GetAuthorizationToken",
@@ -107,6 +112,30 @@ resource "aws_iam_role_policy_attachment" "ecs_task_attach_s3" {
   policy_arn = aws_iam_policy.ecs_task_s3_policy.arn
 }
 
+# ECS Task SSM Policy
+resource "aws_iam_policy" "ecs_task_ssm_policy" {
+  name        = "ecs-task-ssm-access"
+  description = "Allow ECS tasks to read SSM parameters"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid      = "AllowSSMRead"
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
+      }
+    ]
+  })
+}
+
+# Attach ECS Task Policies
+resource "aws_iam_role_policy_attachment" "ecs_task_attach_ssm" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_task_ssm_policy.arn
+}
+
 
 ############################################
 # GitHub Actions OIDC Role (for CI/CD)
@@ -141,6 +170,7 @@ resource "aws_iam_role" "github_actions_role" {
   })
 }
 
+# GitHub Actions Deployment Policy
 resource "aws_iam_policy" "github_actions_policy" {
   name        = "github-actions-deploy-policy"
   description = "Allow GitHub Actions to deploy frontend/backend"
@@ -151,7 +181,7 @@ resource "aws_iam_policy" "github_actions_policy" {
       {
         Sid      = "S3Deploy"
         Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:DeleteObject"]
+        Action   = ["s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
         Resource = "arn:aws:s3:::my-react-frontend-app-bucket02/*"
       },
       {
@@ -186,6 +216,12 @@ resource "aws_iam_policy" "github_actions_policy" {
         Effect   = "Allow"
         Action   = ["cloudfront:CreateInvalidation"]
         Resource = aws_cloudfront_distribution.s3_distribution.arn
+      },
+      {
+        Sid      = "SSMWrite"
+        Effect   = "Allow"
+        Action   = ["ssm:PutParameter"]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
       }
     ]
   })
@@ -202,7 +238,7 @@ resource "aws_iam_role_policy_attachment" "github_actions_attach" {
 ############################################
 # (assuming bucket already defined as aws_s3_bucket.react_app_bucket)
 resource "aws_s3_bucket" "my-react-frontend-app-bucket02" {
-  bucket = "my-react-frontend-app-bucket02"
+  bucket        = "my-react-frontend-app-bucket02"
   force_destroy = true
 }
 
@@ -228,4 +264,33 @@ resource "aws_s3_bucket_policy" "my-react-frontend-app-bucket02" {
       }
     ]
   })
+}
+
+#Terraform applying SSM parameters
+resource "aws_iam_policy" "ssm_access" {
+  name        = "TerraformSSMAccess"
+  description = "Allow Terraform to manage SSM parameters for my React-Node app"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ssm:PutParameter",
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:DeleteParameter"
+        ],
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_ssm" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ssm_access.arn
 }
