@@ -13,30 +13,45 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Configure AWS credentials via OIDC
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::YOUR_ACCOUNT_ID:role/github-actions-role
-          aws-region: us-east-1
-
+      # ----------------------------
+      # Authenticate Docker to ECR
+      # ----------------------------
       - name: Login to ECR
         run: |
           ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecr_repo_url" --query "Parameter.Value" --output text)
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REPO
+          echo "Logging in to ECR: $ECR_REPO"
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO
 
-      - name: Build & Push Docker Image
+      # ----------------------------
+      # Build Docker image
+      # ----------------------------
+      - name: Build Docker image
         run: |
           ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecr_repo_url" --query "Parameter.Value" --output text)
-          docker build -t $ECR_REPO:latest .
+          docker build -t my-backend:latest .
+          docker tag my-backend:latest $ECR_REPO:latest
+
+      # ----------------------------
+      # Push Docker image to ECR
+      # ----------------------------
+      - name: Push Docker image to ECR
+        run: |
+          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecr_repo_url" --query "Parameter.Value" --output text)
           docker push $ECR_REPO:latest
 
-      - name: Update ECS Service
+      # ----------------------------
+      # Update ECS Service
+      # ----------------------------
+      - name: Update ECS service
         run: |
           CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecs_cluster" --query "Parameter.Value" --output text)
           SERVICE=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecs_service" --query "Parameter.Value" --output text)
