@@ -2,7 +2,7 @@
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = 4 # maximum tasks
   min_capacity       = 1 # minimum tasks
-  resource_id        = "service/${aws_ecs_cluster.my-react-node-app-backend.name}/${aws_ecs_service.my-react-node-app-backend-service.name}"
+  resource_id        = "service/${aws_ecs_cluster.my-react-node-app-cluster.name}/${aws_ecs_service.my-react-node-app-service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }

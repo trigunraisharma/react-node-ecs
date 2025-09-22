@@ -1,7 +1,7 @@
 resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/${var.name}/s3_bucket"
   type  = "String"
-  value = aws_s3_bucket.my-react-frontend-app-bucket02.bucket
+  value = aws_s3_bucket.my-react-node-app-bucket02.bucket
 }
 
 resource "aws_ssm_parameter" "cloudfront_id" {
@@ -13,17 +13,17 @@ resource "aws_ssm_parameter" "cloudfront_id" {
 resource "aws_ssm_parameter" "ecr_repo_url" {
   name  = "/${var.name}-backend/ecr_repo_url"
   type  = "String"
-  value = aws_ecr_repository.backend.repository_url
+  value = aws_ecr_repository.repo.repository_url
 }
 
 resource "aws_ssm_parameter" "ecs_cluster" {
   name  = "/${var.name}/ecs_cluster"
   type  = "String"
-  value = aws_ecs_cluster.my-react-node-app-backend.name
+  value = aws_ecs_cluster.my-react-node-app-cluster.name
 }
 
 resource "aws_ssm_parameter" "ecs_service" {
   name  = "/${var.name}/ecs_service"
   type  = "String"
-  value = aws_ecs_service.my-react-node-app-backend-service.name
+  value = aws_ecs_service.my-react-node-app-service.name
 }

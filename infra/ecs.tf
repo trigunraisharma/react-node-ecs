@@ -1,6 +1,6 @@
 #Provides an ECS cluster
-resource "aws_ecs_cluster" "my-react-node-app-backend" {
-  name = "${var.name}-backend"
+resource "aws_ecs_cluster" "my-react-node-app-cluster" {
+  name = "${var.name}-cluster"
 
   setting {
     name  = "containerInsights"
@@ -9,8 +9,8 @@ resource "aws_ecs_cluster" "my-react-node-app-backend" {
 }
 
 #ECS task definition
-resource "aws_ecs_task_definition" "my-react-node-app-backend-task" {
-  family                   = "${var.name}-backend-task"
+resource "aws_ecs_task_definition" "my-react-node-app-task" {
+  family                   = "${var.name}-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 256
@@ -20,8 +20,8 @@ resource "aws_ecs_task_definition" "my-react-node-app-backend-task" {
 
   container_definitions = jsonencode([
     {
-      name      = "${var.name}-backend"
-      image     = "${aws_ecr_repository.backend.repository_url}:latest" # <-- ECR image
+      name      = "${var.name}-container"
+      image     = "${aws_ecr_repository.repo.repository_url}:latest" # <-- ECR image
       essential = true
       portMappings = [
         {
@@ -34,7 +34,7 @@ resource "aws_ecs_task_definition" "my-react-node-app-backend-task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/my-react-node-app-backend"
+          "awslogs-group"         = "/ecs/my-react-node-app-logs"
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
@@ -44,10 +44,10 @@ resource "aws_ecs_task_definition" "my-react-node-app-backend-task" {
 }
 
 # ECS Service
-resource "aws_ecs_service" "my-react-node-app-backend-service" {
+resource "aws_ecs_service" "my-react-node-app-service" {
   name            = "${var.name}-service"
-  cluster         = aws_ecs_cluster.my-react-node-app-backend.id
-  task_definition = aws_ecs_task_definition.my-react-node-app-backend-task.arn
+  cluster         = aws_ecs_cluster.my-react-node-app-cluster.id
+  task_definition = aws_ecs_task_definition.my-react-node-app-task.arn
   desired_count   = var.backend_desired_count
   launch_type     = "FARGATE"
 
@@ -59,7 +59,7 @@ resource "aws_ecs_service" "my-react-node-app-backend-service" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.backend-tg.arn
-    container_name   = "${var.name}-backend"
+    container_name   = "${var.name}-container"
     container_port   = var.app_port
   }
 
@@ -69,8 +69,8 @@ resource "aws_ecs_service" "my-react-node-app-backend-service" {
 }
 
 #Logs
-resource "aws_cloudwatch_log_group" "my-react-node-app-backend" {
-  name              = "my-react-node-app-backend"
+resource "aws_cloudwatch_log_group" "my-react-node-app-logs" {
+  name              = "my-react-node-app-logs"
   retention_in_days = 1
 
   tags = {

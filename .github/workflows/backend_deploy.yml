@@ -1,12 +1,11 @@
 name: Deploy Backend
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "backend/**"
-
+  workflow_run:
+    workflows: ["Provision Infrastructure"]
+    types:
+      - completed
+    
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -27,7 +26,7 @@ jobs:
       # ----------------------------
       - name: Login to ECR
         run: |
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecr_repo_url" --query "Parameter.Value" --output text)
+          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
           echo "Logging in to ECR: $ECR_REPO"
           aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO
 
@@ -36,16 +35,16 @@ jobs:
       # ----------------------------
       - name: Build Docker image
         run: |
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecr_repo_url" --query "Parameter.Value" --output text)
-          docker build -t my-backend:latest .
-          docker tag my-backend:latest $ECR_REPO:latest
+          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
+          docker build -t my-react-node-app-image:latest .
+          docker tag my-react-node-app-image:latest $ECR_REPO:latest
 
       # ----------------------------
       # Push Docker image to ECR
       # ----------------------------
       - name: Push Docker image to ECR
         run: |
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecr_repo_url" --query "Parameter.Value" --output text)
+          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
           docker push $ECR_REPO:latest
 
       # ----------------------------
@@ -53,7 +52,7 @@ jobs:
       # ----------------------------
       - name: Update ECS service
         run: |
-          CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecs_cluster" --query "Parameter.Value" --output text)
-          SERVICE=$(aws ssm get-parameter --name "/my-react-node-app-backend/ecs_service" --query "Parameter.Value" --output text)
+          CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app-cluster/ecs_cluster" --query "Parameter.Value" --output text)
+          SERVICE=$(aws ssm get-parameter --name "/my-react-node-app-service/ecs_service" --query "Parameter.Value" --output text)
           aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment
 

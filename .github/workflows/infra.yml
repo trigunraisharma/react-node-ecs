@@ -63,11 +63,17 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.5
+          terraform_version: latest
 
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+      
       - name: Terraform Init
         run: terraform init -upgrade
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve -var-file=dev.tfvar
+        run: terraform destroy -auto-approve -var-file=dev.tfvars
 

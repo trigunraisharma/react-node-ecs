@@ -5,7 +5,7 @@ locals {
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name              = aws_s3_bucket.my-react-frontend-app-bucket02.bucket_regional_domain_name
+    domain_name              = aws_s3_bucket.my-react-node-app-bucket02.bucket_regional_domain_name
     origin_access_control_id = aws_cloudfront_origin_access_control.react_oac.id
     origin_id                = local.s3_origin_id
   }

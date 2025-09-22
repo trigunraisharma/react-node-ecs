@@ -57,7 +57,7 @@ resource "aws_iam_policy" "ecs_user_ecr_policy" {
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload"
         ]
-        Resource = "arn:aws:ecr:us-east-1:203918840508:repository/my-react-node-app-backend"
+        Resource = "arn:aws:ecr:us-east-1:203918840508:repository/my-react-node-app-repo"
       }
     ]
   })
@@ -101,7 +101,7 @@ resource "aws_iam_policy" "ecs_task_s3_policy" {
         Sid      = "AllowS3Read"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:ListBucket"]
-        Resource = "arn:aws:s3:::my-react-frontend-app-bucket02/*"
+        Resource = "arn:aws:s3:::my-react-node-app-bucket02/*"
       }
     ]
   })
@@ -123,7 +123,7 @@ resource "aws_iam_policy" "ecs_task_ssm_policy" {
       {
         Sid      = "AllowSSMRead"
         Effect   = "Allow"
-        Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+        Action   = ["ssm:PutParameter", "ssm:GetParameter", "ssm:GetParameters", "ssm:DescribeParameters", "ssm:ListTagsForResource", "ssm:DeleteParameter"]
         Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
       }
     ]
@@ -141,13 +141,13 @@ resource "aws_iam_role_policy_attachment" "ecs_task_attach_ssm" {
 # S3 Bucket Policy for CloudFront OAC
 ############################################
 # (assuming bucket already defined as aws_s3_bucket.react_app_bucket)
-resource "aws_s3_bucket" "my-react-frontend-app-bucket02" {
-  bucket        = "my-react-frontend-app-bucket02"
+resource "aws_s3_bucket" "my-react-node-app-bucket02" {
+  bucket        = "my-react-node-app-bucket02"
   force_destroy = true
 }
 
-resource "aws_s3_bucket_policy" "my-react-frontend-app-bucket02" {
-  bucket = aws_s3_bucket.my-react-frontend-app-bucket02.id
+resource "aws_s3_bucket_policy" "my-react-node-app-bucket02" {
+  bucket = aws_s3_bucket.my-react-node-app-bucket02.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -159,7 +159,7 @@ resource "aws_s3_bucket_policy" "my-react-frontend-app-bucket02" {
           Service = "cloudfront.amazonaws.com"
         }
         Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.my-react-frontend-app-bucket02.arn}/*"
+        Resource = "${aws_s3_bucket.my-react-node-app-bucket02.arn}/*"
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = aws_cloudfront_distribution.s3_distribution.arn
@@ -184,7 +184,9 @@ resource "aws_iam_policy" "ssm_access" {
           "ssm:PutParameter",
           "ssm:GetParameter",
           "ssm:GetParameters",
-          "ssm:DeleteParameter"
+          "ssm:DeleteParameter",
+          "ssm:DescribeParameters",
+          "ssm:ListTagsForResource",
         ],
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
