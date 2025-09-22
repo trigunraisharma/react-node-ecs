@@ -32,11 +32,11 @@ jobs:
 
       - name: Upload to S3
         run: |
-          BUCKET=$(aws ssm get-parameter --name "/my-react-node-app-frontend/s3_bucket" --query "Parameter.Value" --output text)
+          BUCKET=$(aws ssm get-parameter --name "/my-react-node-app/s3_bucket" --query "Parameter.Value" --output text)
           aws s3 sync frontend/build/ s3://$BUCKET/ --delete
 
       - name: Invalidate CloudFront
         run: |
-          DIST_ID=$(aws ssm get-parameter --name "/my-react-node-app-frontend/cloudfront_id" --query "Parameter.Value" --output text)
+          DIST_ID=$(aws ssm get-parameter --name "/my-react-node-app/cloudfront_id" --query "Parameter.Value" --output text)
           aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
 
