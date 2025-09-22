@@ -1,0 +1,30 @@
+name: Terraform Bootstrap
+
+on:
+  workflow_dispatch:   # run manually
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # for OIDC auth
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-actions-oidc-role
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Init & Apply Bootstrap
+        working-directory: bootstrap
+        run: |
+          terraform init
+          terraform apply -auto-approve
+

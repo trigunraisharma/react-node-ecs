@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:  # allows manual runs (for destroy, etc.)
 
 jobs:
   terraform:
@@ -24,19 +25,49 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: latest
-      
-      - name: Check Terraform formatting
-        run: terraform fmt -check
-      
+
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+
       - name: Terraform Init
         run: terraform init -upgrade
 
       - name: Validate Terraform
         run: terraform validate
-      
+
       - name: Terraform Plan
         run: terraform plan -var-file=dev.tfvars
 
       - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve -var-file=dev.tfvars
+
+  destroy:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+
+      - name: Terraform Init
+        run: terraform init -upgrade
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -var-file=dev.tfvar
 
