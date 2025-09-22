@@ -26,18 +26,17 @@ jobs:
       # ----------------------------
       - name: Login to ECR
         run: |
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
+          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
           echo "Logging in to ECR: $ECR_REPO"
           aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO
 
       # ----------------------------
       # Build Docker image
       # ----------------------------
-      - name: Build Docker image
+      - name: Build and Push Docker image
         id: build
         run: |
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
-          IMAGE_TAG=${GITHUB_SHA:0:7}  # unique tag per commit
+          IMAGE_TAG=${GITHUB_SHA:0:7}  
           docker build -t $ECR_REPO:$IMAGE_TAG .
           docker push $ECR_REPO:$IMAGE_TAG
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT

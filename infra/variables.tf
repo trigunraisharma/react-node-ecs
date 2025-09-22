@@ -32,10 +32,10 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "container_image" {
-  description = "ECR container image URL for backend"
-  type        = string
-}
+#variable "container_image" {
+#description = "ECR container image URL for backend"
+#type        = string
+#}
 
 variable "app_port" {
   description = "Backend container port"
@@ -49,7 +49,6 @@ variable "backend_desired_count" {
   default     = 2
 }
 
-# ===== Added AWS credentials for personal GitHub account =====
 variable "AWS_ACCESS_KEY_ID" {
   description = "AWS Access Key ID"
   type        = string

@@ -23,9 +23,7 @@ resource "aws_iam_role" "ecs-execution-role" {
     ]
   })
 
-  tags = {
-    tag-key = "tag-value"
-  }
+  tags = { Environment = "dev", Project = var.name }
 }
 
 # Attach AWS managed policy for ECS execution
@@ -123,8 +121,8 @@ resource "aws_iam_policy" "ecs_task_ssm_policy" {
       {
         Sid      = "AllowSSMRead"
         Effect   = "Allow"
-        Action   = ["ssm:PutParameter", "ssm:GetParameter", "ssm:GetParameters", "ssm:DescribeParameters", "ssm:ListTagsForResource", "ssm:DeleteParameter"]
-        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:DescribeParameters", "ssm:ListTagsForResource"]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.name}/*"
       }
     ]
   })

@@ -8,12 +8,6 @@ resource "aws_ecs_cluster" "my-react-node-app-cluster" {
   }
 }
 
-variable "image_tag" {
-  description = "Tag for backend Docker image"
-  type        = string
-  default     = "latest"
-}
-
 #ECS task definition
 resource "aws_ecs_task_definition" "my-react-node-app-task" {
   family                   = "${var.name}-task"
@@ -27,7 +21,7 @@ resource "aws_ecs_task_definition" "my-react-node-app-task" {
   container_definitions = jsonencode([
     {
       name      = "${var.name}-container"
-      image     = "${aws_ecr_repository.repo.repository_url}:${var.image_tag}" # <-- ECR image
+      image     = "${aws_ecr_repository.repo.repository_url}:${var.name}-latest" # <-- ECR image
       essential = true
       portMappings = [
         {
@@ -40,8 +34,8 @@ resource "aws_ecs_task_definition" "my-react-node-app-task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/my-react-node-app-logs"
-          "awslogs-region"        = var.aws_region
+          "awslogs-group"         = "/ecs/${var.name}-logs",
+          "awslogs-region"        = var.aws_region,
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -72,15 +66,4 @@ resource "aws_ecs_service" "my-react-node-app-service" {
   depends_on = [
     aws_subnet.private,
   aws_lb_listener.http]
-}
-
-#Logs
-resource "aws_cloudwatch_log_group" "my-react-node-app-logs" {
-  name              = "my-react-node-app-logs"
-  retention_in_days = 1
-
-  tags = {
-    Environment = "dev"
-    Project     = "my-react-node-app"
-  }
 }
