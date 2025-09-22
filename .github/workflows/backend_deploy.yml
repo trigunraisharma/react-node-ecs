@@ -37,7 +37,7 @@ jobs:
         id: build
         run: |
           IMAGE_TAG=${GITHUB_SHA:0:7}  
-          docker build -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest .
+          docker build -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest ./backend
           docker push $ECR_REPO:$IMAGE_TAG
           docker push $ECR_REPO:latest
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
