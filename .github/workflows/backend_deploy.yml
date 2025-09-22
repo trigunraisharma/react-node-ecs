@@ -46,9 +46,9 @@ jobs:
       # ----------------------------
       - name: Update ECS service
         run: |
-          CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app-cluster/ecs_cluster" --query "Parameter.Value" --output text)
-          SERVICE=$(aws ssm get-parameter --name "/my-react-node-app-service/ecs_service" --query "Parameter.Value" --output text)
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
+          CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app/ecs_cluster" --query "Parameter.Value" --output text)
+          SERVICE=$(aws ssm get-parameter --name "/my-react-node-app/ecs_service" --query "Parameter.Value" --output text)
+          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
           IMAGE_TAG=${{ steps.build.outputs.image_tag }}
           aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --image $ECR_REPO:$IMAGE_TAG
 
