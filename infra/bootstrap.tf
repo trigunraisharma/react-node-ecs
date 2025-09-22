@@ -5,25 +5,12 @@ provider "aws" {
 
 resource "aws_s3_bucket" "tf_state" {
   provider = aws.bootstrap
-  bucket        = "my-react-node-app-terraform-state-bootstrap"
-  force_destroy = true
-
-  tags = {
-    Name = "Terraform State Bucket"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "tf_state" {
-  provider = aws.bootstrap
-  bucket = aws_s3_bucket.tf_state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
+  bucket = "my-react-node-app-terraform-state-bootstrap"
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "tf_state" {
   provider = aws.bootstrap
-  bucket = aws_s3_bucket.tf_state.id
+  bucket = "my-react-node-app-terraform-state-bootstrap"
 
   rule {
     apply_server_side_encryption_by_default {
