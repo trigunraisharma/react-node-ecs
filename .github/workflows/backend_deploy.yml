@@ -37,6 +37,7 @@ jobs:
         run: |
           ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app-repo/ecr_repo_url" --query "Parameter.Value" --output text)
           docker build -t my-react-node-app-image:latest .
+          docker build --no-cache -t my-react-node-app-image:latest .
           docker tag my-react-node-app-image:latest $ECR_REPO:latest
 
       # ----------------------------
