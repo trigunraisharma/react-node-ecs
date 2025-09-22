@@ -8,6 +8,12 @@ resource "aws_ecs_cluster" "my-react-node-app-cluster" {
   }
 }
 
+variable "image_tag" {
+  description = "Tag for backend Docker image"
+  type        = string
+  default     = "latest"
+}
+
 #ECS task definition
 resource "aws_ecs_task_definition" "my-react-node-app-task" {
   family                   = "${var.name}-task"
@@ -21,7 +27,7 @@ resource "aws_ecs_task_definition" "my-react-node-app-task" {
   container_definitions = jsonencode([
     {
       name      = "${var.name}-container"
-      image     = "${aws_ecr_repository.repo.repository_url}:latest" # <-- ECR image
+      image     = "${aws_ecr_repository.repo.repository_url}:${var.image_tag}" # <-- ECR image
       essential = true
       portMappings = [
         {
