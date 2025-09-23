@@ -36,11 +36,10 @@ jobs:
       - name: Build and Push Docker image
         id: build
         run: |
-          IMAGE_TAG=${GITHUB_SHA:0:7}  
-          docker build -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest ./backend
-          docker push $ECR_REPO:$IMAGE_TAG
+          #IMAGE_TAG=${GITHUB_SHA:0:7}  
+          docker build -t $ECR_REPO:latest -t $ECR_REPO:latest ./backend
           docker push $ECR_REPO:latest
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          #echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       # ----------------------------
       # Update ECS Service
@@ -50,5 +49,5 @@ jobs:
           CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app/ecs_cluster" --query "Parameter.Value" --output text)
           SERVICE=$(aws ssm get-parameter --name "/my-react-node-app/ecs_service" --query "Parameter.Value" --output text)
           ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
-          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --image $ECR_REPO:${{ steps.build.outputs.image_tag }}
+          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --image $ECR_REPO:latest
 
