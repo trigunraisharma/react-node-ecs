@@ -36,7 +36,7 @@ jobs:
       # ----------------------------
       - name: Build and Push Docker image
         run: |
-          docker build -t $ECR_REPO:latest ./backend
+          docker build -t $ECR_REPO:latest .
           docker push $ECR_REPO:latest
 
       # ----------------------------
