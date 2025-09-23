@@ -12,3 +12,12 @@ resource "aws_ecr_repository" "repo" {
   }
   force_delete = true
 }
+
+# Store repo URL in SSM so GitHub Actions can use it
+resource "aws_ssm_parameter" "ecr_repo_url" {
+  name        = "/${var.name}/ecr_repo_url"
+  description = "ECR repo URL for backend"
+  type        = "String"
+  value       = aws_ecr_repository.repo.repository_url
+  overwrite   = true
+}
