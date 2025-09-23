@@ -21,7 +21,7 @@ resource "aws_ecs_task_definition" "my-react-node-app-task" {
   container_definitions = jsonencode([
     {
       name      = "${var.name}-container"
-      image     = "${aws_ecr_repository.repo.repository_url}:${var.name}-latest" # <-- ECR image
+      image     = "${aws_ecr_repository.repo.repository_url}:latest" # <-- ECR image
       essential = true
       portMappings = [
         {

@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend   # now all commands run inside backend
+        working-directory: backend
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -19,43 +19,66 @@ jobs:
 
     steps:
       # ----------------------------
-      # 1️⃣ Checkout code
+      # Checkout repository code
       # ----------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
       # ----------------------------
-      # 2️⃣ Get ECR repo URL from SSM and login
+      # Get ECR Repo URL from SSM
       # ----------------------------
-      - name: Login to ECR
+      - name: Set ECR Repo environment variable
         run: |
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
+          ECR_REPO=$(aws ssm get-parameter \
+            --name "/my-react-node-app/ecr_repo_url" \
+            --query "Parameter.Value" --output text)
           echo "ECR_REPO=$ECR_REPO" >> $GITHUB_ENV
           echo "Logging in to ECR: $ECR_REPO"
           aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO
 
       # ----------------------------
-      # 3️⃣ Build and Push Docker image with commit SHA tag
+      # Build and Push Docker Image
       # ----------------------------
       - name: Build and Push Docker image
         id: build
         run: |
-          IMAGE_TAG=${GITHUB_SHA:0:7}  # short commit SHA for immutable tagging
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          docker build -t $ECR_REPO:$IMAGE_TAG .
+          IMAGE_TAG=${GITHUB_SHA:0:7}
+          docker build -t $ECR_REPO:$IMAGE_TAG ./backend
           docker push $ECR_REPO:$IMAGE_TAG
+          # Optionally update 'latest' tag
+          docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
+          docker push $ECR_REPO:latest
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
       # ----------------------------
-      # 4️⃣ Update ECS service with new image
+      # Update ECS Service
       # ----------------------------
-      - name: Update ECS service
+      - name: Register new ECS task definition and update service
         run: |
           CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app/ecs_cluster" --query "Parameter.Value" --output text)
           SERVICE=$(aws ssm get-parameter --name "/my-react-node-app/ecs_service" --query "Parameter.Value" --output text)
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
-          aws ecs update-service \
-            --cluster $CLUSTER \
-            --service $SERVICE \
-            --force-new-deployment \
-            --image $ECR_REPO:$IMAGE_TAG
+
+          # Get current task definition ARN
+          TASK_DEF_ARN=$(aws ecs describe-services --cluster $CLUSTER --services $SERVICE --query "services[0].taskDefinition" --output text)
+
+          # Get current container definitions
+          CONTAINER_DEF=$(aws ecs describe-task-definition --task-definition $TASK_DEF_ARN --query "taskDefinition.containerDefinitions" --output json)
+
+          # Update image to the new Docker image
+          UPDATED_CONTAINER_DEF=$(echo $CONTAINER_DEF | jq --arg IMAGE "$ECR_REPO:$IMAGE_TAG" '.[0].image=$IMAGE')
+
+          # Register new task definition
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --family $(aws ecs describe-task-definition --task-definition $TASK_DEF_ARN --query "taskDefinition.family" --output text) \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu 256 \
+            --memory 512 \
+            --execution-role-arn arn:aws:iam::203918840508:role/ecs-execution-role \
+            --task-role-arn arn:aws:iam::203918840508:role/ecs-task-role \
+            --container-definitions "$UPDATED_CONTAINER_DEF" \
+            --query "taskDefinition.taskDefinitionArn" --output text)
+
+          # Update ECS service with new task definition
+          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --task-definition $NEW_TASK_DEF_ARN
 
