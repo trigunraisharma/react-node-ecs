@@ -5,7 +5,7 @@ on:
     workflows: ["Provision Infrastructure"]
     types:
       - completed
-    
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -27,6 +27,7 @@ jobs:
       - name: Login to ECR
         run: |
           ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
+          echo "ECR_REPO=$ECR_REPO" >> $GITHUB_ENV
           echo "Logging in to ECR: $ECR_REPO"
           aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO
 
@@ -34,7 +35,6 @@ jobs:
       # Build Docker image
       # ----------------------------
       - name: Build and Push Docker image
-        id: build
         run: |
           docker build -t $ECR_REPO:latest ./backend
           docker push $ECR_REPO:latest
@@ -46,6 +46,5 @@ jobs:
         run: |
           CLUSTER=$(aws ssm get-parameter --name "/my-react-node-app/ecs_cluster" --query "Parameter.Value" --output text)
           SERVICE=$(aws ssm get-parameter --name "/my-react-node-app/ecs_service" --query "Parameter.Value" --output text)
-          ECR_REPO=$(aws ssm get-parameter --name "/my-react-node-app/ecr_repo_url" --query "Parameter.Value" --output text)
-          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --image $ECR_REPO:latest
+          aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment
 
