@@ -11,7 +11,7 @@ resource "aws_ssm_parameter" "cloudfront_id" {
 }
 
 resource "aws_ssm_parameter" "ecr_repo_url" {
-  name  = "/${var.name}-backend/ecr_repo_url"
+  name  = "/${var.name}/ecr_repo_url"
   type  = "String"
   value = aws_ecr_repository.repo.repository_url
 }
